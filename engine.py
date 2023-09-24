@@ -159,3 +159,65 @@ def test_one_epoch(test_loader,
         logger.info(log_info)
 
     return np.mean(loss_list)
+
+
+
+
+def test(test_loader,
+                    model,
+                    criterion,
+                    logger,
+                    config,
+                    test_data_name=None):
+    # switch to evaluate mode
+    model.eval()
+
+    preds = []
+    gts = []
+    loss_list = []
+
+    with torch.no_grad():
+        for i, data in enumerate(tqdm(test_loader)):
+            img, msk, img_name = data
+            img, msk = img.cuda(non_blocking=True).float(), msk.cuda(non_blocking=True).float()
+
+            gt_pre, out = model(img)
+            loss = criterion(gt_pre, out, msk)
+
+            loss_list.append(loss.item())
+            msk = msk.squeeze(1).cpu().detach().numpy()
+            gts.append(msk)
+
+            if type(out) is tuple:
+                out = out[0]
+            out = out.squeeze(1).cpu().detach().numpy()
+            preds.append(out)
+
+            if i % config.test_interval == 0:
+                save_imgs_name(img, msk, out, img_name, config.work_dir + 'outputs/', config.datasets, config.threshold, test_data_name=test_data_name)
+
+        preds = np.array(preds).reshape(-1)
+        gts = np.array(gts).reshape(-1)
+
+        y_pre = np.where(preds>=config.threshold, 1, 0)
+        y_true = np.where(gts>=0.5, 1, 0)
+
+        confusion = confusion_matrix(y_true, y_pre)
+        TN, FP, FN, TP = confusion[0,0], confusion[0,1], confusion[1,0], confusion[1,1]
+
+        accuracy = float(TN + TP) / float(np.sum(confusion)) if float(np.sum(confusion)) != 0 else 0
+        sensitivity = float(TP) / float(TP + FN) if float(TP + FN) != 0 else 0
+        specificity = float(TN) / float(TN + FP) if float(TN + FP) != 0 else 0
+        f1_or_dsc = float(2 * TP) / float(2 * TP + FP + FN) if float(2 * TP + FP + FN) != 0 else 0
+        miou = float(TP) / float(TP + FP + FN) if float(TP + FP + FN) != 0 else 0
+
+        if test_data_name is not None:
+            log_info = f'test_datasets_name: {test_data_name}'
+            print(log_info)
+            logger.info(log_info)
+        log_info = f'test of best model, loss: {np.mean(loss_list):.4f},miou: {miou}, f1_or_dsc: {f1_or_dsc}, accuracy: {accuracy}, \
+                specificity: {specificity}, sensitivity: {sensitivity}, confusion_matrix: {confusion}'
+        print(log_info)
+        logger.info(log_info)
+
+    return np.mean(loss_list)
