@@ -39,5 +39,46 @@ class NPY_datasets(Dataset):
 
     def __len__(self):
         return len(self.data)
-        
-    
+
+
+
+class NPY_test_datasets(Dataset):
+    def __init__(self, path_Data, config, test=True):
+        super(NPY_test_datasets, self)
+        if test:
+            images_list = os.listdir(path_Data + 'val/images/')
+            masks_list = os.listdir(path_Data + 'val/masks/')
+            images_list = sorted(images_list)
+            masks_list = sorted(masks_list)
+            self.data = []
+            for i in range(len(images_list)):
+                img_path = path_Data + 'val/images/' + images_list[i]
+                mask_path = path_Data + 'val/masks/' + masks_list[i]
+                self.data.append([img_path, mask_path])
+            self.transformer = config.test_transformer
+
+
+
+        else:
+            images_list = os.listdir(path_Data + 'train/images/')
+            masks_list = os.listdir(path_Data + 'train/masks/')
+            images_list = sorted(images_list)
+            masks_list = sorted(masks_list)
+            self.data = []
+            for i in range(len(images_list)):
+                img_path = path_Data + 'train/images/' + images_list[i]
+                mask_path = path_Data + 'train/masks/' + masks_list[i]
+                self.data.append([img_path, mask_path])
+            self.transformer = config.train_transformer
+
+    def __getitem__(self, indx):
+        img_path, msk_path = self.data[indx]
+        img = np.array(Image.open(img_path).convert('RGB'))
+        msk = np.expand_dims(np.array(Image.open(msk_path).convert('L')), axis=2) / 255
+        #get the image name of val set
+        img_name = os.path.basename(img_path).split('.')[0]
+        img, msk = self.transformer((img, msk))
+        return img, msk, img_name
+
+    def __len__(self):
+        return len(self.data)
