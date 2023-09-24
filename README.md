@@ -34,3 +34,6 @@ python train.py
 
 **3. Obtain the outputs.**
 - After trianing, you could obtain the outputs in './results/'
+
+**4. Evaluation**
+- After training, you can run the 'val.py' to evaluate your model, and get the prediction results.
