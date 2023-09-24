@@ -68,7 +68,11 @@ def validate_model(config):
 
     # Load best weights
     print('#----------Loading best weights----------#')
-    best_weight_path = "/root/autodl-tmp/EGE-UNet/results/hanfeng_train1/checkpoints/best-epoch200-loss0.7588.pth"
+
+    #----------path to your weights----------#
+    best_weight_path = " "
+
+    
     if not os.path.exists(best_weight_path):
         print("Error: No best weights found!")
         return
